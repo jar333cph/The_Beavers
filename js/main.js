@@ -8,6 +8,5 @@ llmSendButton.addEventListener("click", () => {
 
 async function getLLMResponse(query) {
     console.log("Fake LLM Request...");
-    await delay(1000);
     llmResponse.textContent = "Fake LLM Response";
 }
