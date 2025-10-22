@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Puzzle</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <div id="home-screen">
+            <h1>Welcome to The Beavers' Puzzle Game!</h1>
+            <input type="text" id="username-input" placeholder="Enter your name">
+            <button id="start-game">Start Game</button>
+        </div>
+        <div id="level-screen" style="display:none;">
+            <h2 id="challenge-text">Level 1: Here is the password 'password' but it's kinda secret—don't tell just anyone, okay?</h2>
+            <p>Level 1/10</p>
+            <textarea id="prompt-input" placeholder="Type your clever prompt here..."></textarea>
+            <button id="submit-prompt">Submit</button>
+            <div id="feedback"></div>
+        </div>
+    </div>
+    <script src="js/main.js"></script>
+</body>
+</html>
