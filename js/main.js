@@ -1,12 +1,15 @@
-let llmQuery = document.getElementById("llmQuery");
-let llmSendButton = document.getElementById("sendButton");
-let llmResponse = document.getElementById("llmResponse");
+import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-llmSendButton.addEventListener("click", () => {
-    getLLMResponse(llmQuery.value);
+const genAI = new GoogleGenerativeAI("AIzaSyAXi7PVHFxcb1WKxZqmHC2U5uQBEkxDw7w");
+
+let llmQuery = document.getElementById("llmQuery");
+let llmResponse = document.getElementById("llmResponse");
+let llmSendButton = document.getElementById("llmSendButton");
+
+llmSendButton.addEventListener("click", async () => {
+  const query = llmQuery.value;
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const result = await model.generateContent(query);
+  llmResponse.textContent = result.response.text();
 });
 
-async function getLLMResponse(query) {
-    console.log("Fake LLM Request...");
-    llmResponse.textContent = "Fake LLM Response";
-}
