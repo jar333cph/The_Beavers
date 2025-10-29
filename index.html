@@ -3,18 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
     <title>LLM</title>
 </head>
 
 <body>
-    <h1>Running the Script</h1>
-    
-    <input id="llmQuery">
-    <button id="llmSendButton">Send</button>
-    
-    <h1> ------------------------------ </h1>
-    <h2>Waiting for Resposne</h2>
-    <h3 id="llmResponse">...</h3>
-    <h1> ------------------------------ </h1>
+    <div class="username-container">
+        <h1>Who is playing?</h1>
+        <input type="text" id="username" placeholder="Enter your username">
+    </div>
+    <div class="page-container">
+
+        <div class="level-instructions">
+            Try to find the hidden problem!
+        </div>
+        
+        <input id="llmQuery">
+        <button id="llmSendButton">Send</button>
+        
+        <h1> ------------------------------ </h1>
+        <h2>Waiting for Resposne</h2>
+        <h3 id="llmResponse">...</h3>
+        <h1> ------------------------------ </h1>
+    </div>
+
     <script type="module" src="js/main.js"></script>
 </body>

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI("AIzaSyAXi7PVHFxcb1WKxZqmHC2U5uQBEkxDw7w");
+const genAI = new GoogleGenerativeAI("AIzaSyCJMYa7nZ4nwFdLkAlOP7uUdoOsLaXVO-k");
 
 let llmQuery = document.getElementById("llmQuery");
 let llmResponse = document.getElementById("llmResponse");
