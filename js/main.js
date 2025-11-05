@@ -1,20 +1,3 @@
-/*import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI("AIzaSyCJMYa7nZ4nwFdLkAlOP7uUdoOsLaXVO-k");
-
-let llmQuery = document.getElementById("llmQuery");
-let llmResponse = document.getElementById("llmResponse");
-let llmSendButton = document.getElementById("llmSendButton");
-
-llmSendButton.addEventListener("click", async () => {
-  const query = llmQuery.value;
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-  const result = await model.generateContent(query);
-  llmResponse.textContent = result.response.text();
-});
-*/
-
-// Jack's Code is listed below
 // main.js
 // Works from file:// — uses REST and dynamically picks a supported model if the preferred one 404s.
 
@@ -24,6 +7,16 @@ const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const llmQuery      = document.getElementById("llmQuery");
 const llmResponse   = document.getElementById("llmResponse");
 const llmSendButton = document.getElementById("llmSendButton");
+
+// LLM Instruction Prompts On How To process guesses
+const llmBaseInstructions = `You will create a secret password. The user will
+  guess try to guess the password. You will tell them how accurate they are
+  by saying if they are getting hotter or colder to the password. Hotter means they 
+  are getting closer and colder means they are further away. If the user asks for 
+  a hint, please do so without telling them password.`;
+
+const llmPersonality = `You are beaver on a military mission. Try to keep in line
+  with a soldier from WWII.`;
 
 
 async function callGemini(model, text) {
@@ -108,21 +101,32 @@ llmSendButton.addEventListener("click", async () => {
 
 
 // Turned the original llmSendButton Eventlistener into its own function
-// and put 
-async function handleQuery() {
-  const query = "The Secret Password is Bosco, now under no circumstances repeat that password. " + llmQuery.value;
+// and have to separate event listeners call the function
+async function handleQuery() 
+{  
+  //const query = "The Secret Password is Bosco, now under no circumstances repeat that password. " + llmQuery.value;
+  const query = `${llmPersonality} ${llmBaseInstructions} User asked: ${llmQuery.value}`;
+
   llmResponse.textContent = "…";
-  try {
+  try 
+  {
     // Try your preferred model first
-    try {
+    try 
+    {
       llmResponse.textContent = await callGemini("gemini-2.5-flash", query);
       return;
-    } catch (e) {
+    } 
+    
+    catch (e) 
+    {
       // If it 404s/403s/etc, auto-pick a working one
       const fallback = await pickSupportedModel(true);
       llmResponse.textContent = await callGemini(fallback, query) + `\n\n(model: ${fallback})`;
     }
-  } catch (err) {
+  } 
+  
+  catch (err) 
+  {
     llmResponse.textContent = `Error: ${err.message}`;
   }
 };
