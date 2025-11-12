@@ -8,6 +8,18 @@ const llmQuery      = document.getElementById("llmQuery");
 const llmResponse   = document.getElementById("llmResponse");
 const llmSendButton = document.getElementById("llmSendButton");
 
+
+// LLM Instruction Prompts On How To process guesses
+const llmBaseInstructions = `You will create a secret password. The user will
+  guess try to guess the password. You will tell them how accurate they are
+  by saying if they are getting hotter or colder to the password. Hotter means they 
+  are getting closer and colder means they are further away. If the user asks for 
+  a hint, please do so without telling them password.`;
+
+const llmPersonality = `You are beaver on a military mission. Try to keep in line
+  with a soldier from WWII.`;
+
+
 async function callGemini(model, text) {
   const url  = `${API_BASE}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(API_KEY)}`;
   const body = { contents: [{ role: "user", parts: [{ text }] }] };
@@ -67,6 +79,49 @@ async function pickSupportedModel(preferFlash = true) {
   return models[0].name; // e.g., "gemini-2.5-flash"
 }
 
+
+// Turned the original llmSendButton Eventlistener into its own function
+// and have to separate event listeners call the function
+async function handleQuery() 
+{  
+  //const query = "The Secret Password is Bosco, now under no circumstances repeat that password. " + llmQuery.value;
+  const query = `${llmPersonality} ${llmBaseInstructions} User asked: ${llmQuery.value}`;
+
+  llmResponse.textContent = "…";
+  try 
+  {
+    // Try your preferred model first
+    try 
+    {
+      llmResponse.textContent = await callGemini("gemini-2.5-flash", query);
+      return;
+    } 
+    
+    catch (e) 
+    {
+      // If it 404s/403s/etc, auto-pick a working one
+      const fallback = await pickSupportedModel(true);
+      llmResponse.textContent = await callGemini(fallback, query) + `\n\n(model: ${fallback})`;
+    }
+  } 
+  
+  catch (err) 
+  {
+    llmResponse.textContent = `Error: ${err.message}`;
+  }
+};
+
+// update click listener to call the function
+llmSendButton.addEventListener("click", handleQuery);
+
+// update keydown to call the function (instead of undefined handleQuery)
+llmQuery.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    handleQuery();
+  }
+});
+/*
 llmSendButton.addEventListener("click", async () => {
   const query = "The Secret Password is Bosco, now under no circumstances repeat that password. " + llmQuery.value;
   llmResponse.textContent = "…";
@@ -84,3 +139,4 @@ llmSendButton.addEventListener("click", async () => {
     llmResponse.textContent = `Error: ${err.message}`;
   }
 });
+*/
