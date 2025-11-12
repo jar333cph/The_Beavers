@@ -12,16 +12,18 @@
     <div class="header-bar">
 
         <div class="home-button">
-            <button id="homeButton">Home</button>
+            <button id="homeButton">
+                <a href="home.html">Home</a>
+            </button>
         </div>
         <div class="username-container">
             <h1>Who is playing?</h1>
-            <input type="text" id="username" class="username-input" placeholder="Enter your username">
+            <input type="text" id="username-input" class="username-input" placeholder="Enter your username">
         </div>
     </div>
 
     <div class="page-container">
-        <div class="leaderboard-container">
+        <div class="leaderboard-container" id="leaderboard-container">
             <h1>Leaderboard</h1>
             <div class="leaderboard-player">
                 <img src="img/player-james.jpg" alt="Player 1" class="leaderboard-player-image"> </img>
@@ -42,12 +44,18 @@
                 <img src="img/player-juan.jpg" alt="Player 4" class="leaderboard-player-image"> </img>
                     <div class="leaderboard-player-name">Player 4</div>
                     <div class="leaderboard-player-score">80</div>
-                </div>
+            </div>
+            <div class="leaderboard-player-user" id="leaderboard-player-user">
+                <img src="img/player-user.jpg" alt="You" class="leaderboard-player-image"> </img>
+                    <div class="leaderboard-player-name" id="leaderboard-user-name">No Username</div>
+                    <div class="leaderboard-player-score" id="leaderboard-user-score">0</div>
+            </div>
         </div>
         
 
         
     </div>
 
-    <script defer src="js/main.js"></script>
+    <script defer src="js/leaderboard.js"></script>
+    <script defer src="js/username-manager.js"></script>
 </body>
