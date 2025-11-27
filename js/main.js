@@ -1,7 +1,7 @@
 // main.js
 // Works from file:// — uses REST and dynamically picks a supported model if the preferred one 404s.
 
-const API_KEY  = "AIzaSyDZbb-_uHnpXFZdyK5aH-pniDHO1nIHwdk";
+const API_KEY  = "AIzaSyBJ3jJi8IJ_wVIcDk9P7eIVY5ms0rqntdk";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 const llmQuery      = document.getElementById("llmQuery");
