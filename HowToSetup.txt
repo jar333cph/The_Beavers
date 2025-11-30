@@ -1,0 +1,17 @@
+The Beavers — Spec-Clean, No-Server, 10-Level Version
+====================================================
+
+How to run:
+1. Open config.js and paste your Gemini API key into GEMINI_API_KEY.
+2. Save the file.
+3. Double-click index.html to open the game in your browser.
+
+What this version does:
+- No local fetch() of JSON files (levels are in js/levels.js), so no CORS issues.
+- No modules or bundling; everything is classic <script> tags.
+- Screens:
+  * Home (set codename, start new game, continue, go to levels/leaderboard)
+  * Levels (select level, with Admin allowed to skip)
+  * Game (chat with beaver, uses Gemini)
+  * Leaderboard (shows scores from localStorage)
+- All 10 levels are beaver-themed, one-word secret passwords.
