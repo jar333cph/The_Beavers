@@ -13,7 +13,7 @@
 
 // Constants used to identify specific stored objects in localStorage
 const STORAGE_KEYS = {
-	UI_SESSION: "uiSession",       // Stores: { screenType, levelId, username }
+	UI_SESSION: "uiSession",       // Stores: { screenType, levelId, username, developerMode }
 	GAME_STATE: "gameState",       // Stores: { currentLevel, completedLevels, levels }
 	LEADERBOARD: "leaderboard"     // Stores: Array of { sessionId, username, score }
 };
@@ -155,19 +155,20 @@ function sanitizeAnswer(raw) {
 
 /**
  * Purpose:
- *   Load the saved UI session (which screen, level, username).
+ *   Load the saved UI session (which screen, level, username, developer mode).
  *
  * Returns:
- *   { screenType: string, levelId: number|null, username: string }
+ *   { screenType: string, levelId: number|null, username: string, developerMode: boolean }
  *
  * Default:
- *   If nothing saved, returns: { screenType: "home", levelId: null, username: "Player" }
+ *   If nothing saved, returns: { screenType: "home", levelId: null, username: "Player", developerMode: false }
  */
 function getUiSession() {
 	return getStorage(STORAGE_KEYS.UI_SESSION, {
 		screenType: "home",
 		levelId: null,
-		username: "Player"
+		username: "Player",
+		developerMode: false
 	});
 }
 
@@ -222,7 +223,7 @@ function setGameState(state) {
  * Behavior:
  *   - Adds to `completedLevels` if not already there
  *   - Updates `currentLevel` to unlock the next one
- *   - Calls updateLeaderboard() with new state
+ *   - Calls updateLeaderboard() with the levelId to update leaderboard score for current username
  */
 function recordLevelComplete(levelId) {
 	const state = getGameState();
@@ -233,7 +234,8 @@ function recordLevelComplete(levelId) {
 		state.currentLevel = levelId + 1;
 	}
 	setGameState(state);
-	updateLeaderboard(state);
+	// Update leaderboard - add this level to current username's completed levels
+	updateLeaderboardForLevel(levelId);
 }
 
 /**
@@ -258,28 +260,86 @@ function setLeaderboard(entries) {
 
 /**
  * Purpose:
- *   Add or update a leaderboard entry based on current session.
+ *   Add a completed level to the current username's leaderboard entry.
  *
  * Behavior:
- *   - Updates score for the session if it exists
- *   - Adds new entry if session not present
+ *   - Tracks entries by username (supports multiple players)
+ *   - Each username has their own completed levels list
+ *   - Adds the levelId to the current username's completed levels if not already there
+ *   - Updates score (1 point per level)
+ *   - Sorts entries descending by score
+ *   - Trims to top 100
+ */
+function updateLeaderboardForLevel(levelId) {
+	const session = getUiSession();
+	const state = getGameState();
+	const username = session.username || "Player";
+	const entries = getLeaderboard();
+	
+	// Find entry by username (supports multiple players with different usernames)
+	const existing = entries.find(entry => entry.username === username);
+	
+	if (existing) {
+		// Update existing entry for this username
+		if (!existing.completedLevels) {
+			existing.completedLevels = [];
+		}
+		// Add level if not already completed by this username
+		if (!existing.completedLevels.includes(levelId)) {
+			existing.completedLevels.push(levelId);
+			existing.completedLevels.sort((a, b) => a - b);
+		}
+		existing.score = existing.completedLevels.length; // 1 point per level
+		existing.sessionId = state.sessionId; // Update sessionId in case it changed
+	} else {
+		// Create new entry for this username
+		entries.push({
+			sessionId: state.sessionId,
+			username,
+			completedLevels: [levelId],
+			score: 1 // 1 point per level
+		});
+	}
+	entries.sort((a, b) => b.score - a.score);
+	setLeaderboard(entries.slice(0, 100));
+}
+
+/**
+ * Purpose:
+ *   Add or update a leaderboard entry based on current session.
+ *   (Legacy function - kept for backward compatibility)
+ *
+ * Behavior:
+ *   - Tracks entries by username (supports multiple players)
+ *   - Each username has their own completed levels list
+ *   - Updates score for the username based on their completed levels (1 point per level)
+ *   - Adds new entry if username not present
  *   - Sorts entries descending by score
  *   - Trims to top 100
  */
 function updateLeaderboard(state) {
 	const session = getUiSession();
 	const username = session.username || "Player";
-	const score = (state.completedLevels || []).length;
 	const entries = getLeaderboard();
-	const existing = entries.find(entry => entry.sessionId === state.sessionId);
+	
+	// Find entry by username (supports multiple players with different usernames)
+	const existing = entries.find(entry => entry.username === username);
+	
+	// Get completed levels for this username from the current game state
+	const currentCompletedLevels = [...(state.completedLevels || [])];
+	
 	if (existing) {
-		existing.username = username;
-		existing.score = score;
+		// Update existing entry for this username
+		existing.completedLevels = currentCompletedLevels.sort((a, b) => a - b);
+		existing.score = currentCompletedLevels.length; // 1 point per level
+		existing.sessionId = state.sessionId; // Update sessionId in case it changed
 	} else {
+		// Create new entry for this username
 		entries.push({
 			sessionId: state.sessionId,
 			username,
-			score
+			completedLevels: currentCompletedLevels.sort((a, b) => a - b),
+			score: currentCompletedLevels.length // 1 point per level
 		});
 	}
 	entries.sort((a, b) => b.score - a.score);

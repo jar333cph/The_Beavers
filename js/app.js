@@ -37,7 +37,7 @@ function renderHomeScreen() {
 	<div id="home-screen" class="card">
 	<h2>Welcome, ${session.username || "Player"}</h2>
 	<p>Outsmart AI-powered beavers guarding their one-word secrets.</p>
-	<div style="margin: 0.75rem 0;">
+	<div class="username-input-group">
 	<label for="username-field">Codename:</label>
 	<input id="username-field" type="text" value="${session.username || "Player"}" />
 	<button id="save-name-btn">Save Name</button>
@@ -73,13 +73,17 @@ function renderHomeScreen() {
 	// Start new game (clears all progress)
 	document.getElementById("new-game-btn").onclick = function () {
 		if (confirm("Start fresh? All progress will be lost.")) {
+			const currentSession = window.Utils.getUiSession();
+			const devMode = currentSession.developerMode || false;
 			localStorage.clear();
 			window.Utils.setUiSession({
 				screenType: "levels",
 				levelId: null,
-				username: usernameField.value || "Player"
+				username: usernameField.value || "Player",
+				developerMode: devMode
 			});
 			window.Utils.getGameState(); // reinit game state
+			updateDevModeButton();
 			navigateTo("levels");
 		}
 	};
@@ -115,17 +119,19 @@ function renderHomeScreen() {
  *   - Levels show ID, title, and difficulty.
  *   - Completed levels are visually dimmed.
  *   - Current level is highlighted with a border.
- *   - Future levels are locked unless username is "Admin".
+ *   - Future levels are locked unless username is "Admin" or developer mode is on.
  */
 function renderLevelsScreen(levels) {
 	const state = window.Utils.getGameState();
 	const session = window.Utils.getUiSession();
 	const app = document.getElementById("app");
+	const isDevMode = session.developerMode || false;
 
 	const buttons = levels.map(level => {
 		const completed = state.completedLevels.includes(level.id);
 		const isCurrent = state.currentLevel === level.id;
-		const isLocked = session.username !== "Admin" && level.id > state.currentLevel;
+		// Unlock all levels if developer mode is on, or if username is "Admin"
+		const isLocked = !isDevMode && session.username !== "Admin" && level.id > state.currentLevel;
 
 		return `
 		<button
@@ -193,7 +199,8 @@ function renderLeaderboardScreen() {
 	app.innerHTML = `
 	<div id="leaderboard-screen" class="card">
 	<h2>Leaderboard</h2>
-	<table class="leaderboard-table">
+	<p style="margin-bottom: 1rem; color: #666;">Score = 1 point per level completed</p>
+	<table class="leaderboard-table" id="leaderboard-table">
 	<thead>
 	<tr><th>Username</th><th>Score</th></tr>
 	</thead>
@@ -226,9 +233,11 @@ function navigateTo(screenType, levelId) {
 	const nextSession = {
 		screenType,
 		levelId: levelId || null,
-		username: session.username || "Player"
+		username: session.username || "Player",
+		developerMode: session.developerMode || false
 	};
 	window.Utils.setUiSession(nextSession);
+	updateDevModeButton();
 
 	const levels = window.LEVELS || [];
 	if (!Array.isArray(levels) || levels.length === 0) {
@@ -253,11 +262,41 @@ function navigateTo(screenType, levelId) {
 
 /**
  * Purpose:
+ *   Update the developer mode toggle button text based on current state.
+ */
+function updateDevModeButton() {
+	const session = window.Utils.getUiSession();
+	const toggleButton = document.getElementById("dev-mode-toggle");
+	if (toggleButton) {
+		const isDevMode = session.developerMode || false;
+		toggleButton.textContent = isDevMode ? "Dev Mode: ON" : "Dev Mode: OFF";
+		toggleButton.style.background = isDevMode ? "#00b894" : "#2d3436";
+	}
+}
+
+/**
+ * Purpose:
+ *   Toggle developer mode on/off.
+ */
+function toggleDeveloperMode() {
+	const session = window.Utils.getUiSession();
+	session.developerMode = !(session.developerMode || false);
+	window.Utils.setUiSession(session);
+	updateDevModeButton();
+	
+	// If on levels screen, re-render to show unlocked levels
+	if (session.screenType === "levels") {
+		navigateTo("levels");
+	}
+}
+
+/**
+ * Purpose:
  *   Entry point for the game.
  *
  * Behavior:
  *   - Sets up event delegation for top nav buttons.
- *   - Loads the last session’s screen or defaults to Home.
+ *   - Loads the last session's screen or defaults to Home.
  */
 function initApp() {
 	console.log("initApp: starting", !!window.Utils, !!window.Game, !!window.LEVELS);
@@ -270,6 +309,16 @@ function initApp() {
 		const screen = button.getAttribute("data-screen");
 		navigateTo(screen);
 	});
+
+	// Developer mode toggle button handler
+	document.addEventListener("click", function (event) {
+		if (event.target.id === "dev-mode-toggle") {
+			toggleDeveloperMode();
+		}
+	});
+
+	// Update developer mode button on load
+	updateDevModeButton();
 
 	// Start on saved screen (or home by default)
 	navigateTo(session.screenType || "home", session.levelId || null);

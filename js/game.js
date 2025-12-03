@@ -157,7 +157,6 @@ function renderGameScreen(levelId, levels) {
 	// Initialize level state if it hasn't been played yet
 	if (!perLevel[levelKey]) {
 		perLevel[levelKey] = {
-			attempts: 0,
 			chatHistory: [
 				{ role: "beaver", text: "I'm a beaver guarding a secret. Can you trick me into revealing it?" }
 			]
@@ -169,25 +168,32 @@ function renderGameScreen(levelId, levels) {
 	const levelState = perLevel[levelKey];
 	const app = document.getElementById("app");
 
-	// Render the current chat history into divs
+	// Render the current chat history into divs (iPhone style - no labels)
 	const chatHtml = levelState.chatHistory
 	.map(message => {
 		const className = message.role === "user" ? "msg-user" : "msg-beaver";
-		const label = message.role === "user" ? (session.username || "You") : "Beaver";
-		return "<div class=\"" + className + "\">" + label + ": " + message.text + "</div>";
+		return "<div class=\"" + className + "\">" + message.text + "</div>";
 	})
 	.join("");
 
+	// Check if developer mode is active
+	const isDevMode = session.developerMode || false;
+	
 	// Inject game screen layout into DOM
 	app.innerHTML = `
 	<div id="game-screen" class="card">
-	<h2>Level ${level.id}: ${level.title} <small>(${level.difficulty})</small></h2>
+	<h2 style="text-align: center;">Level ${level.id}: ${level.title} <small>(${level.difficulty})</small></h2>
+	${isDevMode ? `
+	<div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+	<strong>🔧 Developer Mode - System Prompt:</strong>
+	<pre style="background: #f8f9fa; padding: 0.8rem; border-radius: 4px; margin-top: 0.5rem; white-space: pre-wrap; word-wrap: break-word; font-size: 0.9rem;">${level.systemPrompt || "No system prompt defined."}</pre>
+	</div>
+	` : ""}
 	<div id="chat" class="chat">${chatHtml}</div>
 	<div class="input-row">
 	<input type="text" id="guess-input" placeholder="Say something to the beaver..." />
 	<button id="send-btn">Send</button>
 	</div>
-	<p><small>Attempts: ${levelState.attempts}</small></p>
 	</div>
 	`;
 
@@ -197,16 +203,62 @@ function renderGameScreen(levelId, levels) {
 	const sendButton = document.getElementById("send-btn");
 
 	/**
-	 * Append a new chat message to screen and state
+	 * Show a visual win popup
+	 */
+	function showWinPopup(message) {
+		// Remove any existing win popup
+		const existingPopup = document.getElementById("win-popup");
+		if (existingPopup) {
+			existingPopup.remove();
+		}
+
+		// Create win popup element
+		const popup = document.createElement("div");
+		popup.id = "win-popup";
+		popup.className = "win-popup active";
+		popup.innerHTML = `
+			<div class="win-popup-content">
+				<h2>Level Complete!</h2>
+				<p>${message}</p>
+				<button id="win-popup-close">Awesome!</button>
+			</div>
+		`;
+		document.body.appendChild(popup);
+
+		// Close button handler
+		const closeButton = document.getElementById("win-popup-close");
+		closeButton.onclick = function() {
+			popup.classList.remove("active");
+			setTimeout(() => popup.remove(), 300);
+		};
+
+		// Close on background click
+		popup.onclick = function(e) {
+			if (e.target === popup) {
+				popup.classList.remove("active");
+				setTimeout(() => popup.remove(), 300);
+			}
+		};
+
+		// Auto-close after 5 seconds
+		setTimeout(() => {
+			if (popup && popup.classList.contains("active")) {
+				popup.classList.remove("active");
+				setTimeout(() => popup.remove(), 300);
+			}
+		}, 5000);
+	}
+
+	/**
+	 * Append a new chat message to screen and state (iPhone style - no labels)
 	 */
 	function appendMessage(role, text) {
 		levelState.chatHistory.push({ role, text });
 		window.Utils.setGameState(state);
 		const className = role === "user" ? "msg-user" : "msg-beaver";
-		const label = role === "user" ? (session.username || "You") : "Beaver";
 		const element = document.createElement("div");
 		element.className = className;
-		element.textContent = label + ": " + text;
+		element.textContent = text;
 		chatElement.appendChild(element);
 		chatElement.scrollTop = chatElement.scrollHeight;
 	}
@@ -227,21 +279,33 @@ function renderGameScreen(levelId, levels) {
 			return;
 		}
 		guessInput.value = "";
-		levelState.attempts += 1;
-		appendMessage("user", guess);
-
-		// Update attempt count
-		const attemptInfo = document.querySelector("#game-screen small");
-		if (attemptInfo) {
-			attemptInfo.textContent = "Attempts: " + levelState.attempts;
+		
+		// Check if level is already completed
+		const isAlreadyCompleted = state.completedLevels.includes(level.id);
+		
+		// Check if player's guess contains the win keyword
+		if (checkWin(level, guess)) {
+			appendMessage("user", guess);
+			if (!isAlreadyCompleted) {
+				window.Utils.recordLevelComplete(level.id);
+				showWinPopup("You cracked it! You found the secret word!");
+			} else {
+				showWinPopup("You already completed this level!");
+			}
+			return;
 		}
+		
+		appendMessage("user", guess);
 
 		// Call Gemini with updated chat history
 		callGemini(level.systemPrompt, levelState.chatHistory, function (reply) {
 			appendMessage("beaver", reply);
+			// Check if beaver's reply contains the win keyword
 			if (checkWin(level, reply)) {
-				window.Utils.recordLevelComplete(level.id);
-				alert("You cracked it! The beaver revealed the secret word.");
+				if (!isAlreadyCompleted) {
+					window.Utils.recordLevelComplete(level.id);
+					showWinPopup("You cracked it! The beaver revealed the secret word.");
+				}
 			}
 		}, function (error) {
 			appendMessage("beaver", "Hmm, I'm having trouble thinking right now. (" + error.message + ")");
